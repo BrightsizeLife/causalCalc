@@ -1,13 +1,47 @@
 summarize_causal_classes <- function(classified_df) {
-  classified_df %>%
+  # Base counts for each detailed class
+  base_summary <- classified_df %>%
     count(effect) %>%
     mutate(
       proportion = n / sum(n),
       percent = proportion * 100
+    )
+  
+  # Map to 3x2x2 structure
+  classified_df <- classified_df %>%
+    mutate(
+      effect_type = case_when(
+        str_detect(effect, "Excitatory") ~ "Excitatory",
+        str_detect(effect, "Inhibitory") ~ "Inhibitory",
+        TRUE ~ "No Effect"
+      ),
+      sufficiency = case_when(
+        str_detect(effect, "Sufficient") ~ "Yes",
+        effect_type == "No Effect" ~ NA_character_,
+        TRUE ~ "No"
+      ),
+      necessity = case_when(
+        str_detect(effect, "Necessary") ~ "Yes",
+        effect_type == "No Effect" ~ NA_character_,
+        TRUE ~ "No"
+      )
+    )
+  
+  # Cross-tabulate effect, sufficiency, and necessity
+  cross_tab <- classified_df %>%
+    count(effect_type, sufficiency, necessity) %>%
+    mutate(
+      proportion = n / sum(base_summary$n),
+      percent = proportion * 100
     ) %>%
-    arrange(desc(proportion)) %>%
-    select(effect, n, proportion, percent)
+    arrange(desc(proportion))
+  
+  return(list(
+    detailed_summary = base_summary,
+    cross_tab = cross_tab
+  ))
 }
+
 
 
 
